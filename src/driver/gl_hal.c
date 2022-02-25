@@ -38,10 +38,10 @@ static int check_endian(void)
   if(*((char *)&x) == 1) 
   {
 	ENDIAN = 0;   
-	printf("little endian\n");
+	// printf("little endian\n");
   }else{
 	ENDIAN = 1;   
-	printf("big endian\n");
+	// printf("big endian\n");
   }
 
   return 0;

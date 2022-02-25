@@ -58,7 +58,7 @@ int dfu_process(uint8_t *out_file,uint32_t file_size)
         system(TURN_OFF_DFU_ENABLE);
         usleep(100*1000);
         system(TURN_ON_RESET);
-        sleep(3);
+        usleep(100*1000);
 
         step = GET_BOOT_INFO;
     }
@@ -66,10 +66,6 @@ int dfu_process(uint8_t *out_file,uint32_t file_size)
     case GET_BOOT_INFO: {
         uint8_t boot_info[100] = {0};
         uint32_t size = 0;
-
-        uint8_t debug[20] = {0};
-        debug[0] = '5';
-        uartTx(1,debug);
 
         size = uartRxTimeout(100,boot_info);
         size = size;
@@ -86,26 +82,25 @@ int dfu_process(uint8_t *out_file,uint32_t file_size)
     case START_UPLOAD: {
         uint8_t upload_info[20] = {0};
         uint32_t size = 0;
+        uint8_t write_msg[5] = {0};
 
-        upload_info[0] = '1';          /* 启动 upload */
-        uartTx(1,upload_info);
+        write_msg[0] = '1';          /* 启动 upload */
+        uartTx(1,write_msg);
 
-        usleep(100*1000);
+        usleep(500*1000);
 
         size = uartRxTimeout(19,upload_info);
-        size = size;
-        // for (int i = 0;i < size;i++) {
-        //     printf("%x ",upload_info[i]);
-        // }
-        //printf("upload_info=%s\r\n",upload_info);
+        // printf("upload_info=%s\r\n",upload_info);
         if (strstr((const char *)upload_info,"begin upload")) {
             step = START_TRANS;
         } else {
             step = START_dfu;
+            sleep(1000);
         }
     }
     break;
     case START_TRANS: {
+        printf("start upload...\n");
         ret = xmodemTransmit(out_file,file_size);
         if (ret > 0) {
             printf("upload ok. total size:%d\r\n",ret);
@@ -172,7 +167,7 @@ int main(int argc, char *argv[])
     
     hal_init(argv[2], 115200, 0);
 
-    printf("start dfu\r\n");
+    // printf("start dfu\r\n");
 
     while (1) {
         ret = dfu_process(buffer,read_size);
@@ -181,7 +176,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    printf("end dfu\r\n");
+    printf("dfu success!\r\n");
 
     return 0;
 }
