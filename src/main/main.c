@@ -43,7 +43,7 @@ char TURN_ON_RESET[64];
 char TURN_OFF_RESET[64];
 char TURN_ON_DFU_ENABLE[64];
 char TURN_OFF_DFU_ENABLE[64];
-
+int g_verbose = 0;
 
 int dfu_process(uint8_t *out_file,uint32_t file_size)
 {
@@ -136,10 +136,12 @@ int main(int argc, char *argv[])
 {
     int ret;
 
-    if ((argc != 5)) {
-        printf("gl-silabs-dfu [Upgrade file path] [Uart] [Reset IO] [DFU enable IO] \n");
+    if (argc < 5) {
+        printf("gl-silabs-dfu [Upgrade file path] [Uart] [Reset IO] [DFU enable IO] -v\n");
 		return -1;
     }
+    if (argv[5] != NULL && !strncmp(argv[5], "-v", 2))
+        g_verbose = 1;
 
 #if 0
     printf("argc=%d\n",argc);

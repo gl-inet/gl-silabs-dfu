@@ -30,7 +30,7 @@
 #define DLY_1S 1000
 #define MAXRETRANS 25
 static int last_error = 0;
-
+extern int g_verbose;
 static unsigned short crc16_ccitt(unsigned char *buf, int len);
 
 void port_outbyte(unsigned char trychar)
@@ -136,7 +136,8 @@ start_trans:
             float pro = (float)len/srcsz;
             pro = pro * 100;
             uint32_t show = pro;
-            process_bar(show);  /* 打印进度条 */
+            if (g_verbose)
+                process_bar(show);  /* 打印进度条 */
 
             if (c > bufsz) 
                 c = bufsz;
