@@ -17,8 +17,11 @@ $ git clone https://gitlab.com/gl.iot/gl-silicon-dfu.git
 ### xmodem 
 
 ```shell
-gl-silabs-dfu xmodem [Upgrade file path] [Uart] [Reset IO] [DFU enable IO] [-v]
+gl-silabs-dfu xmodem [Upgrade file path] [Uart] [Reset IO] [DFU enable IO] [-v] [-c]
 ```
+
+- **-v**: Printing the Upgrade Progress
+- **-c**: Version checking
 
 ### bgapi
 
