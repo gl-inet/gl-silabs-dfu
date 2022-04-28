@@ -16,7 +16,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=gl-silabs-dfu
-PKG_VERSION:=1.0.1
+PKG_VERSION:=1.1.0
 
 
 include $(INCLUDE_DIR)/package.mk
@@ -25,7 +25,7 @@ include $(INCLUDE_DIR)/cmake.mk
 define Package/gl-silabs-dfu
 	SECTION:=base
 	CATEGORY:=gl-inet-iot
-	TITLE:=GL inet update silabs zigbee/thread
+	TITLE:=GL inet dfu silabs firmware
 	DEPENDS:= 
 endef
 

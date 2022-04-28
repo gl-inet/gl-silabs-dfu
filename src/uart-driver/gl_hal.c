@@ -51,8 +51,8 @@ int hal_init(char *port, uint32_t baudRate, uint32_t flowcontrol)
 {
     check_endian();
 
-	// Manual clean uart cache: fix tcflush() not work on some model
-	uartCacheClean();
+    // Manual clean uart cache: fix tcflush() not work on some model
+    uartCacheClean();
 
     int serialFd = uartOpen((int8_t*)port, baudRate, flowcontrol, 100);
     if( serialFd < 0 )

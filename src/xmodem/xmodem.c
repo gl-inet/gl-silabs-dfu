@@ -32,6 +32,7 @@
 static int last_error = 0;
 extern int g_verbose;
 static unsigned short crc16_ccitt(unsigned char *buf, int len);
+static void process_bar(uint32_t pro);
 
 void port_outbyte(unsigned char trychar)
 {
@@ -62,7 +63,7 @@ static void flushinput(void)
 }
 
 
-void process_bar(uint32_t pro)
+static void process_bar(uint32_t pro)
 {
     static char buf[102] = {0};
 
