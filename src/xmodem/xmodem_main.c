@@ -38,7 +38,7 @@ typedef enum {
     DEBUG_TEST,
 } dfu_step_e;
 
-char TTY_NUM[16] = { 0 };
+char TTY_NUM[32] = { 0 };
 char TURN_ON_RESET[64];
 char TURN_OFF_RESET[64];
 char TURN_ON_DFU_ENABLE[64];
@@ -212,14 +212,20 @@ int xmodem_main(int argc, char* argv[])
     size_t read_size;
     read_size = fread(buffer, 1, 1024 * 1024, fp); /* 每次读取1个字节，最多读取10个，这样返回得read_size才是读到的字节数 */
     printf("file size:%ld\n", read_size);
+    fclose(fp);
 
     strcpy(TTY_NUM, argv[3]);
     if (ver_check) {
-        hal_init(TTY_NUM, 460800, 0);
+        ret = hal_init(TTY_NUM, 460800, 1);
         step = VERSION_CHECK;
     } else {
-        hal_init(TTY_NUM, 115200, 0);
+        ret = hal_init(TTY_NUM, 115200, 0);
         step = START_DFU;
+    }
+    if (ret < 0) {
+        fprintf(stderr, "hal_init failed\n");
+        fprintf(stderr, "dfu failed\n");
+        return -1;
     }
     while (1) {
         ret = dfu_process(buffer, read_size);
@@ -231,7 +237,6 @@ int xmodem_main(int argc, char* argv[])
     printf("dfu success!\r\n");
 
     hal_destroy();
-    fclose(fp);
 
     return 0;
 }
