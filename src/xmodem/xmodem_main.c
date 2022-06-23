@@ -58,16 +58,23 @@ static dfu_step_e step;
 
 bool check_is_need_to_upgrade(char* rcp_version)
 {
-    char* end_str;
-    char* str = strtok_r(rcp_version, ";", &end_str);
-    str = strtok_r(str, "/", &end_str);
-    str = strtok_r(NULL, "/", &end_str);
+    char* end_str1;
+    char* str1 = strtok_r(rcp_version, ";", &end_str1);
+    char* rcp_ver = strrchr(str1, '_');
+
     if (g_verbose) {
-        printf("Current rcp version: %s\n", str);
+        printf("Current rcp version: %s\n", str1);
         printf("Upgrade file: %s\n", g_filepath);
     }
 
-    if (strstr(g_filepath, str))
+    if (rcp_ver == NULL)
+        return true;
+
+    char* end_str2;
+    char* str2 = strrchr(g_filepath, '_');
+    char* fw_ver = strtok_r(str2, ".", &end_str2);
+    
+    if (!strcmp(rcp_ver, fw_ver))
         return false;
     return true;
 }

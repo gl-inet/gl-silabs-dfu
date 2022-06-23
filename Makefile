@@ -16,7 +16,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=gl-silabs-dfu
-PKG_VERSION:=1.2.3
+PKG_VERSION:=1.2.4
 
 
 include $(INCLUDE_DIR)/package.mk

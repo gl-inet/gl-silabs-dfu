@@ -41,10 +41,10 @@ int main(int argc, char *argv[])
     {
         bgapi_main(argc, argv);
     }else if(0 == strncmp(argv[1], "xmodem", strlen("xmodem"))) {
-        xmodem_main(argc, argv);
+        ret = xmodem_main(argc, argv);
     }else{
         printf("Unsupported dfu type! Support dfu type: bgapi | xmodem  \n");
     }
 
-    return 0;
+    return ret;
 }
