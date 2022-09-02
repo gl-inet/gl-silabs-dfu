@@ -23,16 +23,20 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <time.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include "gl_hal.h"
 #include "gl_uart.h"
+#include "silabs_msg.h"
+#include "bg_types.h"
+#include "host_gecko.h"
 #include "xmodem.h"
 #include "xmodem_main.h"
 
 typedef enum {
-    VERSION_CHECK,
+    THREAD_VERSION_CHECK,
+    BLE_VERSION_CHECK,
     START_DFU,
     GET_BOOT_INFO,
     START_UPLOAD,
@@ -46,7 +50,8 @@ char TURN_OFF_RESET[64];
 char TURN_ON_DFU_ENABLE[64];
 char TURN_OFF_DFU_ENABLE[64];
 int g_verbose = 0;
-int ver_check = 0;
+int thread_ver_check = 0;
+int ble_ver_check = 0;
 char g_filepath[256] = { 0 };
 
 char new_ot_efr32_commit_hash[16] = { 0 };
@@ -56,7 +61,7 @@ uint8_t spinel_get_module_version_rsp[128] = { 0 };
 
 static dfu_step_e step;
 
-bool check_is_need_to_upgrade(char* rcp_version)
+bool thread_check_is_need_to_upgrade(char* rcp_version)
 {
     char* end_str1;
     char* str1 = strtok_r(rcp_version, ";", &end_str1);
@@ -79,12 +84,101 @@ bool check_is_need_to_upgrade(char* rcp_version)
     return true;
 }
 
+
+bool ble_check_is_need_to_upgrade(char* rcp_version)
+{
+    char* end_str1;
+    char* str1 = strtok_r(g_filepath, "v", &end_str1);
+    char* end_str2;
+    char* str2 = strtok_r(end_str1, ".", &end_str2);
+
+    if (g_verbose) {
+        printf("Current version: %s\n", rcp_version);
+        printf("Upgrade version: %s\n", str2);
+    }
+    
+    if (!strcmp(rcp_version, str2))
+        return false;
+    return true;
+}
+
+void ble_version_check(void)
+{
+    uint32_t header = 0;
+    uint16_t major;
+    uint16_t minor;
+    uint16_t patch;
+    char rcp_version[128];
+
+    int ret;
+
+    int dataToRead = 4;
+    uint8_t* header_p = (uint8_t*)&header;
+
+    system(TURN_OFF_RESET);
+    usleep(100*1000);
+    system(TURN_ON_RESET);
+
+    while(1)
+    {
+        while(1)
+        {
+            ret = uartRxNonBlocking(1, header_p);
+            if(ret == 1)
+            {
+                if(*header_p == 0xa0)
+                {
+                    break;
+                }
+            }
+        }
+        dataToRead--;
+        header_p++;
+
+        while(dataToRead)
+        {
+            ret = uartRxNonBlocking(dataToRead, header_p);
+            if(ret != -1)
+            {
+                dataToRead -= ret;
+                header_p += ret;
+            }
+        }
+
+        if(ENDIAN){
+            reverse_endian((uint8_t*)&header, 4);
+        } 
+
+        if(header == 0x000112a0)
+        {
+            uartRxNonBlocking(2, (uint8_t*)&major);
+            uartRxNonBlocking(2, (uint8_t*)&minor);
+            uartRxNonBlocking(2, (uint8_t*)&patch);
+
+            if(ENDIAN){
+                reverse_endian((uint8_t*)&major, 2);
+                reverse_endian((uint8_t*)&minor, 2);
+                reverse_endian((uint8_t*)&patch, 2);
+            }
+            sprintf(rcp_version, "%d_%d_%d", major, minor, patch);
+            if(!ble_check_is_need_to_upgrade(rcp_version))
+            {
+                printf("No need to upgrade. DFU end!\n");
+                hal_destroy();
+                exit(0);
+            }
+            return;
+        }
+    }
+    
+}
+
 int dfu_process(uint8_t* out_file, uint32_t file_size)
 {
     int ret;
 
     switch (step) {
-        case VERSION_CHECK: {
+        case THREAD_VERSION_CHECK: {
             int32_t rsp_len = 0;
             ret = uartTx(7, spinel_get_module_version_cmd);
             if (7 != ret) {
@@ -106,7 +200,7 @@ int dfu_process(uint8_t* out_file, uint32_t file_size)
                     goto start_dfu;
                     break;
                 }
-                if (!check_is_need_to_upgrade(spinel_get_module_version_rsp)) {
+                if (!thread_check_is_need_to_upgrade(spinel_get_module_version_rsp)) {
                     printf("No need to upgrade. DFU end!\n");
                     return 1;
                 }
@@ -121,6 +215,92 @@ int dfu_process(uint8_t* out_file, uint32_t file_size)
             step = START_DFU;
             break;
         }
+        case BLE_VERSION_CHECK: {
+            uint32_t header = 0;
+            uint16_t major;
+            uint16_t minor;
+            uint16_t patch;
+            char rcp_version[128];
+
+            int dataToRead = 4;
+            uint8_t* header_p = (uint8_t*)&header;
+
+            system(TURN_OFF_RESET);
+            usleep(100*1000);
+            system(TURN_ON_RESET);
+
+            struct timeval time;
+            uint32_t backpu_time;
+            gettimeofday(&time,NULL);
+            backpu_time = time.tv_sec;
+
+            while(1)
+            {
+                while(1)
+                {
+                    ret = uartRxNonBlocking(1, header_p);
+                    if(ret == 1)
+                    {
+                        if(*header_p == 0xa0)
+                        {
+                            break;
+                        }
+                    }
+                }
+                dataToRead--;
+                header_p++;
+
+                while(dataToRead)
+                {
+                    ret = uartRxNonBlocking(dataToRead, header_p);
+                    if(ret != -1)
+                    {
+                        dataToRead -= ret;
+                        header_p += ret;
+                    }
+                }
+
+                if(ENDIAN)
+                {
+                    reverse_endian((uint8_t*)&header, 4);
+                } 
+
+                if(header == 0x000112a0)
+                {
+                    uartRxNonBlocking(2, (uint8_t*)&major);
+                    uartRxNonBlocking(2, (uint8_t*)&minor);
+                    uartRxNonBlocking(2, (uint8_t*)&patch);
+
+                    if(ENDIAN)
+                    {
+                        reverse_endian((uint8_t*)&major, 2);
+                        reverse_endian((uint8_t*)&minor, 2);
+                        reverse_endian((uint8_t*)&patch, 2);
+                    }
+                    sprintf(rcp_version, "%d_%d_%d", major, minor, patch);
+                    if(!ble_check_is_need_to_upgrade(rcp_version))
+                    {
+                        printf("No need to upgrade. DFU end!\n");
+                        return 1;
+                    }else 
+                    {
+                        step = START_DFU;
+                        break;
+                    }
+                }
+
+                gettimeofday(&time,NULL);
+                printf("time:%d\n", time.tv_sec - backpu_time);
+                if(30 <= time.tv_sec - backpu_time) //timeout set 30s
+                {
+                    printf("Get old firmware version timeout! Start DFU...\n");
+                    step = START_DFU;
+                    break;
+                }
+            }
+            break;
+        }
+
         case START_DFU: {
             /* 拉低GPIO 复位target */
             system(TURN_OFF_RESET);
@@ -204,9 +384,13 @@ int xmodem_main(int argc, char* argv[])
         g_verbose = 1;
     }
 
-    if ((argv[7] != NULL && !strncmp(argv[7], "-c", 2)) || (argv[6] != NULL && !strncmp(argv[6], "-c", 2))) {
-        ver_check = 1; // only for openthread module firmware build from GL-inet
+    if ((argv[7] != NULL && !strncmp(argv[7], "-cb", 3)) || (argv[6] != NULL && !strncmp(argv[6], "-cb", 3))){
+        ble_ver_check = 1;
     }
+    else if ((argv[7] != NULL && !strncmp(argv[7], "-c", 2)) || (argv[6] != NULL && !strncmp(argv[6], "-c", 2))) {
+        thread_ver_check = 1; // only for openthread module firmware build from GL-inet
+    }
+    
 
 #if 0
     printf("argc=%d\n",argc);
@@ -235,10 +419,15 @@ int xmodem_main(int argc, char* argv[])
     fclose(fp);
 
     strcpy(TTY_NUM, argv[3]);
-    if (ver_check) {
+    if (thread_ver_check ) {
         ret = hal_init(TTY_NUM, 1000000, 1);
-        step = VERSION_CHECK;
-    } else {
+        step = THREAD_VERSION_CHECK;
+    } 
+    else if (ble_ver_check) {
+        ret = hal_init(TTY_NUM, 115200, 0);
+        step = BLE_VERSION_CHECK; 
+    }
+    else {
         ret = hal_init(TTY_NUM, 115200, 0);
         step = START_DFU;
     }

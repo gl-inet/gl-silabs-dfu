@@ -24,6 +24,7 @@
 #include <fcntl.h>   
 #include <signal.h>
 #include <stdbool.h>
+#include <pthread.h>
 
 #include "gl_uart.h"
 #include "gl_hal.h"
