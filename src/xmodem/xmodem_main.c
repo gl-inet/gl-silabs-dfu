@@ -102,83 +102,13 @@ bool ble_check_is_need_to_upgrade(char* rcp_version)
     return true;
 }
 
-void ble_version_check(void)
-{
-    uint32_t header = 0;
-    uint16_t major;
-    uint16_t minor;
-    uint16_t patch;
-    char rcp_version[128];
-
-    int ret;
-
-    int dataToRead = 4;
-    uint8_t* header_p = (uint8_t*)&header;
-
-    system(TURN_OFF_RESET);
-    usleep(100*1000);
-    system(TURN_ON_RESET);
-
-    while(1)
-    {
-        while(1)
-        {
-            ret = uartRxNonBlocking(1, header_p);
-            if(ret == 1)
-            {
-                if(*header_p == 0xa0)
-                {
-                    break;
-                }
-            }
-        }
-        dataToRead--;
-        header_p++;
-
-        while(dataToRead)
-        {
-            ret = uartRxNonBlocking(dataToRead, header_p);
-            if(ret != -1)
-            {
-                dataToRead -= ret;
-                header_p += ret;
-            }
-        }
-
-        if(ENDIAN){
-            reverse_endian((uint8_t*)&header, 4);
-        } 
-
-        if(header == 0x000112a0)
-        {
-            uartRxNonBlocking(2, (uint8_t*)&major);
-            uartRxNonBlocking(2, (uint8_t*)&minor);
-            uartRxNonBlocking(2, (uint8_t*)&patch);
-
-            if(ENDIAN){
-                reverse_endian((uint8_t*)&major, 2);
-                reverse_endian((uint8_t*)&minor, 2);
-                reverse_endian((uint8_t*)&patch, 2);
-            }
-            sprintf(rcp_version, "%d_%d_%d", major, minor, patch);
-            if(!ble_check_is_need_to_upgrade(rcp_version))
-            {
-                printf("No need to upgrade. DFU end!\n");
-                hal_destroy();
-                exit(0);
-            }
-            return;
-        }
-    }
-    
-}
-
 int dfu_process(uint8_t* out_file, uint32_t file_size)
 {
     int ret;
 
     switch (step) {
         case THREAD_VERSION_CHECK: {
+            printf("1\n");
             int32_t rsp_len = 0;
             ret = uartTx(7, spinel_get_module_version_cmd);
             if (7 != ret) {
@@ -216,6 +146,7 @@ int dfu_process(uint8_t* out_file, uint32_t file_size)
             break;
         }
         case BLE_VERSION_CHECK: {
+            printf("2\n");
             uint32_t header = 0;
             uint16_t major;
             uint16_t minor;
@@ -302,6 +233,7 @@ int dfu_process(uint8_t* out_file, uint32_t file_size)
         }
 
         case START_DFU: {
+            printf("3\n");
             /* 拉低GPIO 复位target */
             system(TURN_OFF_RESET);
             usleep(100 * 1000);
@@ -314,6 +246,7 @@ int dfu_process(uint8_t* out_file, uint32_t file_size)
             break;
         }
         case GET_BOOT_INFO: {
+            printf("4\n");
             uint8_t boot_info[100] = { 0 };
             uint32_t size = 0;
 
@@ -325,11 +258,12 @@ int dfu_process(uint8_t* out_file, uint32_t file_size)
             } else {
                 step = START_DFU;
             }
-            // printf("boot_info=%s\r\n",boot_info);
+            printf("boot_info=%s\r\n",boot_info);
             uartCacheClean(); /* 清除其他未读取出来的数据 */
             break;
         }
         case START_UPLOAD: {
+            printf("5\n");
             uint8_t upload_info[20] = { 0 };
             uint32_t size = 0;
             uint8_t write_msg[5] = { 0 };
@@ -340,16 +274,17 @@ int dfu_process(uint8_t* out_file, uint32_t file_size)
             usleep(300 * 1000);
 
             size = uartRxTimeout(19, upload_info);
-            // printf("upload_info=%s\r\n",upload_info);
+            printf("upload_info=%s\r\n",upload_info);
             if (strstr((const char*)upload_info, "begin upload")) {
                 step = START_TRANS;
             } else {
                 step = START_DFU;
-                sleep(1000);
+                usleep(100*1000);
             }
             break;
         }
         case START_TRANS: {
+            printf("6\n");
             printf("start upload...\n");
             ret = xmodemTransmit(out_file, file_size);
             if (ret > 0) {
@@ -375,6 +310,7 @@ int dfu_process(uint8_t* out_file, uint32_t file_size)
 int xmodem_main(int argc, char* argv[])
 {
     int ret;
+    int try = 10;
 
     if (argc < 6) {
         printf("gl-silabs-dfu xmodem [Upgrade file path] [Uart] [Reset IO] [DFU enable IO] [-v] [version check]\n");
@@ -386,9 +322,11 @@ int xmodem_main(int argc, char* argv[])
 
     if ((argv[7] != NULL && !strncmp(argv[7], "-cb", 3)) || (argv[6] != NULL && !strncmp(argv[6], "-cb", 3))){
         ble_ver_check = 1;
+        ++try;
     }
     else if ((argv[7] != NULL && !strncmp(argv[7], "-c", 2)) || (argv[6] != NULL && !strncmp(argv[6], "-c", 2))) {
         thread_ver_check = 1; // only for openthread module firmware build from GL-inet
+        ++try;
     }
     
 
@@ -436,17 +374,22 @@ int xmodem_main(int argc, char* argv[])
         fprintf(stderr, "dfu failed\n");
         return -1;
     }
-    int try = 10;
-    while (try--) {
+
+    while (try) {
         ret = dfu_process(buffer, read_size);
         if (ret != 0) {
+            printf("dfu success!\r\n");
+            hal_destroy();
             break;
         }
+        else if (try == 1) {
+            printf("dfu failed!\r\n");
+            hal_destroy();
+        }
+        if(step == START_DFU) {
+            --try;
+        }
     }
-
-    printf("dfu success!\r\n");
-
-    hal_destroy();
-
+            
     return 0;
 }
