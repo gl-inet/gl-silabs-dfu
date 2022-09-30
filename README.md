@@ -21,7 +21,8 @@ gl-silabs-dfu xmodem [Upgrade file path] [Uart] [Reset IO] [DFU enable IO] [-v] 
 ```
 
 - **-v**: Printing the Upgrade Progress
-- **-c**: Version checking
+- **-c**: Thread version checking
+- **-cb**:BLE version checking
 
 ### bgapi
 
