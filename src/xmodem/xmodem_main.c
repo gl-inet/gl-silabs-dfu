@@ -108,7 +108,6 @@ int dfu_process(uint8_t* out_file, uint32_t file_size)
 
     switch (step) {
         case THREAD_VERSION_CHECK: {
-            printf("1\n");
             int32_t rsp_len = 0;
             ret = uartTx(7, spinel_get_module_version_cmd);
             if (7 != ret) {
@@ -146,7 +145,6 @@ int dfu_process(uint8_t* out_file, uint32_t file_size)
             break;
         }
         case BLE_VERSION_CHECK: {
-            printf("2\n");
             uint32_t header = 0;
             uint16_t major;
             uint16_t minor;
@@ -233,7 +231,6 @@ int dfu_process(uint8_t* out_file, uint32_t file_size)
         }
 
         case START_DFU: {
-            printf("3\n");
             /* 拉低GPIO 复位target */
             system(TURN_OFF_RESET);
             usleep(100 * 1000);
@@ -246,7 +243,6 @@ int dfu_process(uint8_t* out_file, uint32_t file_size)
             break;
         }
         case GET_BOOT_INFO: {
-            printf("4\n");
             uint8_t boot_info[100] = { 0 };
             uint32_t size = 0;
 
@@ -258,12 +254,11 @@ int dfu_process(uint8_t* out_file, uint32_t file_size)
             } else {
                 step = START_DFU;
             }
-            printf("boot_info=%s\r\n",boot_info);
+            // printf("boot_info=%s\r\n",boot_info);
             uartCacheClean(); /* 清除其他未读取出来的数据 */
             break;
         }
         case START_UPLOAD: {
-            printf("5\n");
             uint8_t upload_info[20] = { 0 };
             uint32_t size = 0;
             uint8_t write_msg[5] = { 0 };
@@ -274,7 +269,7 @@ int dfu_process(uint8_t* out_file, uint32_t file_size)
             usleep(300 * 1000);
 
             size = uartRxTimeout(19, upload_info);
-            printf("upload_info=%s\r\n",upload_info);
+            // printf("upload_info=%s\r\n",upload_info);
             if (strstr((const char*)upload_info, "begin upload")) {
                 step = START_TRANS;
             } else {
@@ -284,7 +279,6 @@ int dfu_process(uint8_t* out_file, uint32_t file_size)
             break;
         }
         case START_TRANS: {
-            printf("6\n");
             printf("start upload...\n");
             ret = xmodemTransmit(out_file, file_size);
             if (ret > 0) {
