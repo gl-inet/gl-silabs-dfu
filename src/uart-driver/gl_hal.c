@@ -18,7 +18,7 @@
  ******************************************************************************/
 #include <stdlib.h>
 #include <string.h>
-#include <uci.h>
+#include <stdio.h>
 #include <unistd.h>   
 #include <fcntl.h>   
 #include "gl_uart.h"

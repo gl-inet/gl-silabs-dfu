@@ -36,16 +36,16 @@ static void process_bar(uint32_t pro);
 
 bool module_work = false;
 bool sync_dfu_boot = false;
-static int g_verbose = 0;
+static int gb_verbose = 0;
 
 #define MAX_DFU_PACKET 		(96)
 #define MAX_WAIT_RESET_TIME	(3 * 10) // unit: 100ms
 #define MAX_WAIT_SYNC_TIME	(3 * 10) // unit: 100ms
 
-char TURN_ON_RESET[64];
-char TURN_OFF_RESET[64];
-char TURN_ON_DFU_ENABLE[64];
-char TURN_OFF_DFU_ENABLE[64];
+static char TURN_ON_RESET[64];
+static char TURN_OFF_RESET[64];
+static char TURN_ON_DFU_ENABLE[64];
+static char TURN_OFF_DFU_ENABLE[64];
 
 
 #define WARNNING_MSG		"gl-silabs-dfu bgapi [dfu mode] [Upgrade file path] [Uart] [Reset IO] [DFU enable IO] [-v]"
@@ -76,7 +76,7 @@ int bgapi_main(int argc, char *argv[])
 		}
 		if (argv[6] != NULL && !strncmp(argv[6], "-v", 2))
 		{
-			g_verbose = 1;
+			gb_verbose = 1;
 		}
     }else if(0 == strncmp(argv[2], "hard", strlen("hard"))) {
         hardware_reset_dfu = true;
@@ -87,7 +87,7 @@ int bgapi_main(int argc, char *argv[])
 		}
 		if (argv[7] != NULL && !strncmp(argv[7], "-v", 2))
 		{
-			g_verbose = 1;
+			gb_verbose = 1;
 		}		
 		init_sys_gpio(argv[6]);
 		sprintf(TURN_ON_DFU_ENABLE, "echo 1 > /sys/class/gpio/gpio%s/value", argv[6]);
@@ -205,7 +205,7 @@ int bgapi_main(int argc, char *argv[])
 			goto exit;
 		}
 		
-		if(g_verbose)
+		if(gb_verbose)
 		{
 			pro = (float)current_pos/dfu_total;
 			pro = pro * 100;

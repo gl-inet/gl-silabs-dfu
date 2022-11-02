@@ -44,15 +44,15 @@ typedef enum {
     DEBUG_TEST,
 } dfu_step_e;
 
-char TTY_NUM[32] = { 0 };
-char TURN_ON_RESET[64];
-char TURN_OFF_RESET[64];
-char TURN_ON_DFU_ENABLE[64];
-char TURN_OFF_DFU_ENABLE[64];
+static char TTY_NUM[32] = { 0 };
+static char TURN_ON_RESET[64];
+static char TURN_OFF_RESET[64];
+static char TURN_ON_DFU_ENABLE[64];
+static char TURN_OFF_DFU_ENABLE[64];
 int g_verbose = 0;
-int thread_ver_check = 0;
-int ble_ver_check = 0;
-char g_filepath[256] = { 0 };
+static int thread_ver_check = 0;
+static int ble_ver_check = 0;
+static char g_filepath[256] = { 0 };
 
 char new_ot_efr32_commit_hash[16] = { 0 };
 
