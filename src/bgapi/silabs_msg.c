@@ -97,21 +97,35 @@ struct gecko_cmd_packet* gecko_wait_message(void) //wait for event from system
     int dataToRead = BGLIB_MSG_HEADER_LEN;
     uint8_t* header_p = (uint8_t*)&header;
 
-    if(!appBooted)
+    // if(!appBooted)
+    // {
+    //     while(1)
+    //     {
+    //         ret = uartRxNonBlocking(1, header_p);
+    //         if(ret == 1)
+    //         {
+    //             if(*header_p == 0xa0)
+    //             {
+    //                 break;
+    //             }
+    //         }
+    //     }
+    //     dataToRead--;
+    //     header_p++;
+    // }
+
+    while(1)
     {
-        while(1)
+        ret = uartRxNonBlocking(1, header_p);
+        if(ret == 1)
         {
-            ret = uartRxNonBlocking(1, header_p);
-            if(ret == 1)
+            if((*header_p == 0xa0) || (*header_p == 0x20))
             {
-                if(*header_p == 0xa0)
-                {
-                    break;
-                }
+                --dataToRead;
+                ++header_p;
+                break;
             }
         }
-        dataToRead--;
-        header_p++;
     }
 
     while(dataToRead)
@@ -124,7 +138,6 @@ struct gecko_cmd_packet* gecko_wait_message(void) //wait for event from system
         }else{
             return 0;
         }
-
     }
 
     if(ENDIAN){
@@ -217,6 +230,7 @@ void gecko_handle_command(uint32_t hdr, void* data)
 void gecko_handle_command_noresponse(uint32_t hdr,void* data)
 {
 	uint32_t send_msg_length = BGLIB_MSG_HEADER_LEN + BGLIB_MSG_LEN(gecko_cmd_msg->header);
+
 	if(ENDIAN) 
 	{
 		reverse_endian((uint8_t*)&gecko_cmd_msg->header,BGLIB_MSG_HEADER_LEN);
@@ -243,11 +257,11 @@ void silabs_event_handler(struct gecko_cmd_packet *p)
 		{
             appBooted = true;
 			module_work = true;
-			printf("* System boot evrnt!\n* Module firmware version: %d.%d.%d\n* Build number:            %d\n", \
+			printf("* System boot event!\n* Module firmware version: %d.%d.%d\n* Build number:            %d\n", \
                                                     p->data.evt_system_boot.major,      \
 													p->data.evt_system_boot.minor,      \
 													p->data.evt_system_boot.patch,      \
-													p->data.evt_system_boot.build);
+													p->data.evt_system_boot.build);                                    
             break;
 		}
         case gecko_evt_dfu_boot_id:

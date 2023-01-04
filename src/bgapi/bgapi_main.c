@@ -212,7 +212,7 @@ int bgapi_main(int argc, char *argv[])
 			show = pro;
 			process_bar(show);
 		}
-
+		
 		struct gecko_msg_dfu_flash_upload_rsp_t* flash_upload_rsp = gecko_cmd_dfu_flash_upload(dfu_size, dfu_data);
 		if (flash_upload_rsp->result) 
 		{
@@ -240,6 +240,11 @@ int bgapi_main(int argc, char *argv[])
 	module_work = false;
 	usleep(100000);
 	gecko_cmd_dfu_reset(0);
+
+	// system(TURN_OFF_RESET);
+	// usleep(100*1000);
+	// system(TURN_ON_RESET);
+
 	wait_msec = 0;
 	while (!module_work)
 	{
